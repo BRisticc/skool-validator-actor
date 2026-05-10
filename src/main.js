@@ -105,11 +105,19 @@ function centsToDollars(cents) {
  * Returns an array of { slug, name, oldMembers, oldMonthlyPriceCents, oldAnnualPriceCents }
  */
 function parseGroupsFromCsv(csvText) {
+    // Auto-detect delimiter: tab-separated or comma-separated
+    const firstLine = csvText.split('\n')[0] ?? '';
+    const delimiter = firstLine.includes('\t') ? '\t' : ',';
+    log.info(`CSV delimiter detected: ${delimiter === '\t' ? 'TAB' : 'COMMA'}`);
+
     const records = parseCsv(csvText, {
         columns: true,
         skip_empty_lines: true,
         trim: true,
         relax_column_count: true,
+        delimiter,
+        relax_quotes: true,
+        quote: '"',
     });
 
     const seen = new Set();
