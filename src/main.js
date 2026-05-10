@@ -116,8 +116,10 @@ function parseGroupsFromCsv(csvText) {
         trim: true,
         relax_column_count: true,
         delimiter,
-        relax_quotes: true,
-        quote: '"',
+        // TSV files don't use quoting — disable it to avoid parse errors
+        // when group_info/group_description contain raw quote characters
+        quote: delimiter === '\t' ? false : '"',
+        relax_quotes: delimiter !== '\t',
     });
 
     const seen = new Set();
