@@ -1,0 +1,23 @@
+{
+  "name": "skool-group-validator",
+  "version": "0.1.0",
+  "description": "Apify actor that validates Skool group member counts and pricing against a CSV export.",
+  "main": "src/main.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "start:dev": "APIFY_IS_AT_HOME=0 node src/main.js"
+  },
+  "dependencies": {
+    "apify": "^3.3.2",
+    "crawlee": "^3.9.0",
+    "csv-parse": "^5.5.6",
+    "got-scraping": "^4.0.4"
+  },
+  "devDependencies": {
+    "@apify/eslint-config": "^0.4.0"
+  }
+}

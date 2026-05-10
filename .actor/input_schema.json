@@ -1,0 +1,69 @@
+{
+  "title": "Skool Group Validator — Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "csvUrl": {
+      "title": "CSV File URL",
+      "type": "string",
+      "description": "Public URL of the Skool CSV export (Apify Key-Value Store URL or any public link). Leave empty if using csvContent.",
+      "editor": "textfield",
+      "example": "https://api.apify.com/v2/key-value-stores/YOUR_STORE_ID/records/INPUT_CSV"
+    },
+    "csvContent": {
+      "title": "CSV Content (paste directly)",
+      "type": "string",
+      "description": "Paste raw CSV content here if you don't have a URL.",
+      "editor": "textarea",
+      "example": "group_slug,group_name,...\ntom-bilyeu,Zero To Founder,..."
+    },
+    "groupSlugs": {
+      "title": "Group slugs (override — optional)",
+      "type": "array",
+      "description": "If set, only these slugs are validated (ignores CSV). Useful for spot-checking.",
+      "editor": "stringList",
+      "example": ["makerschool", "tom-bilyeu"]
+    },
+    "requestDelayMs": {
+      "title": "Delay between requests (ms)",
+      "type": "integer",
+      "description": "Polite crawl delay in milliseconds. Default 1500.",
+      "default": 1500,
+      "minimum": 500,
+      "maximum": 10000,
+      "editor": "number"
+    },
+    "maxConcurrency": {
+      "title": "Max concurrency",
+      "type": "integer",
+      "description": "How many pages to fetch in parallel. Keep low (1-3) to avoid rate-limiting.",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 5,
+      "editor": "number"
+    },
+    "maxGroups": {
+      "title": "Max groups (0 = all)",
+      "type": "integer",
+      "description": "Limit number of groups processed. 0 means process all. Useful for testing.",
+      "default": 0,
+      "minimum": 0,
+      "editor": "number"
+    },
+    "proxyConfiguration": {
+      "title": "Proxy configuration",
+      "type": "object",
+      "description": "Apify proxy config. Recommended: use Apify residential proxies if you hit rate limits.",
+      "editor": "proxy",
+      "prefill": { "useApifyProxy": true, "apifyProxyGroups": ["RESIDENTIAL"] }
+    },
+    "notifyOnPriceChange": {
+      "title": "Notify on price change",
+      "type": "boolean",
+      "description": "If true, actor will emit a warning log entry for every group whose price changed.",
+      "default": true,
+      "editor": "checkbox"
+    }
+  },
+  "required": []
+}

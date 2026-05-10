@@ -1,0 +1,52 @@
+{
+  "actorSpecification": 1,
+  "name": "skool-group-validator",
+  "title": "Skool Group Validator",
+  "description": "Validates and refreshes Skool group data (member count, pricing) from a CSV export.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "environmentVariables": {},
+  "dockerfile": "./Dockerfile",
+  "readme": "./README.md",
+  "input": "./input_schema.json",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "fields": {},
+      "views": {
+        "overview": {
+          "title": "Validated Groups",
+          "transformation": {
+            "fields": [
+              "group_slug",
+              "group_name",
+              "old_members",
+              "live_members",
+              "members_diff",
+              "old_monthly_price_usd",
+              "live_monthly_price_usd",
+              "price_changed",
+              "fetch_status",
+              "skool_url"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "group_slug":              { "label": "Slug",            "format": "text" },
+              "group_name":              { "label": "Group",           "format": "text" },
+              "old_members":             { "label": "Members (old)",   "format": "number" },
+              "live_members":            { "label": "Members (live)",  "format": "number" },
+              "members_diff":            { "label": "Δ Members",       "format": "number" },
+              "old_monthly_price_usd":   { "label": "Price old ($/mo)","format": "number" },
+              "live_monthly_price_usd":  { "label": "Price live ($/mo)","format": "number" },
+              "price_changed":           { "label": "Price changed?",  "format": "boolean" },
+              "fetch_status":            { "label": "Status",          "format": "text" },
+              "skool_url":               { "label": "URL",             "format": "link" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
