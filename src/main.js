@@ -299,13 +299,56 @@ const crawler = new PlaywrightCrawler({
             return;
         }
 
-        // Wait for the price span to appear (renders client-side)
+        // Wait for the join button area to render (price is client-side)
         try {
-            await page.waitForSelector('span', { timeout: 10000 });
+            await page.waitForSelector('button', { timeout: 12000 });
         } catch (_) { /* continue anyway */ }
 
+        // Extract price directly from rendered DOM via JS
+        // Styled-component class names are dynamic, so we search by text content
+        const priceData = await page.evaluate(() => {
+            const priceRe = /\$[\d,.]+\s*\/\s*mo/i;
+            const annualRe = /\$[\d,.]+\s*\/\s*year/i;
+            const numRe = /[\d,.]+/;
+
+            let monthly = null;
+            let annual = null;
+
+            // Walk every text node on the page
+            const walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
+                null
+            );
+            let node;
+            while ((node = walker.nextNode())) {
+                const text = node.textContent?.trim() || '';
+                if (!monthly && priceRe.test(text)) {
+                    const m = text.match(numRe);
+                    if (m) monthly = parseFloat(m[0].replace(',', ''));
+                }
+                if (!annual && annualRe.test(text)) {
+                    const m = text.match(numRe);
+                    if (m) annual = parseFloat(m[0].replace(',', ''));
+                }
+                if (monthly !== null && annual !== null) break;
+            }
+            return { monthly, annual };
+        });
+
+        log.info(`[${slug}] DOM price — monthly:$${priceData.monthly} annual:$${priceData.annual}`);
+
+        // Also get member count from page source (already working via regex)
         const html = await page.content();
         const live = extractSkoolData(html, slug);
+
+        // Override price with DOM-extracted values (more reliable)
+        if (priceData.monthly !== null) {
+            live.monthlyPriceCents = Math.round(priceData.monthly * 100);
+        }
+        if (priceData.annual !== null) {
+            live.annualPriceCents = Math.round(priceData.annual * 100);
+        }
 
         const membersDiff = (live.members !== null && meta.oldMembers !== null)
             ? live.members - meta.oldMembers : null;
