@@ -88,6 +88,19 @@ function deepFind(obj, key, _depth = 0) {
 }
 
 /**
+ * Finds the object that CONTAINS the given key (returns parent object).
+ */
+function deepFindParent(obj, key, _depth = 0) {
+    if (_depth > 10 || obj === null || typeof obj !== 'object') return undefined;
+    if (key in obj) return obj;
+    for (const v of Object.values(obj)) {
+        const found = deepFindParent(v, key, _depth + 1);
+        if (found !== undefined) return found;
+    }
+    return undefined;
+}
+
+/**
  * Extracts member count and pricing from a Skool /about page HTML.
  *
  * Strategy 1: Parse __NEXT_DATA__ JSON and recursively search for the keys.
@@ -109,22 +122,49 @@ function extractSkoolData(html, slug) {
             const memberCount    = deepFind(nextData, 'memberCount')
                                 ?? deepFind(nextData, 'totalMembers')
                                 ?? deepFind(nextData, 'numMembers');
-            const monthlyPrice   = deepFind(nextData, 'monthlyPrice')
-                                ?? deepFind(nextData, 'priceMonthly');
-            const annualPrice    = deepFind(nextData, 'annualPrice')
-                                ?? deepFind(nextData, 'priceAnnual');
-            const currency       = deepFind(nextData, 'currency')
-                                ?? deepFind(nextData, 'monthlyPriceCurrency')
-                                ?? 'usd';
 
-            log.debug(`[${slug}] __NEXT_DATA__ found — members:${memberCount} price:${monthlyPrice}`);
+            // Find the object that holds memberCount — pricing keys are siblings
+            const groupObj = deepFindParent(nextData, 'memberCount')
+                          ?? deepFindParent(nextData, 'totalMembers');
 
-            if (memberCount !== undefined || monthlyPrice !== undefined) {
+            if (groupObj) {
+                // Log ALL keys in this object so we can see the exact price key name
+                const allKeys = Object.keys(groupObj);
+                log.info(`[${slug}] Group object keys: ${allKeys.join(', ')}`);
+
+                // Try every plausible price key
+                const monthlyPrice =
+                    groupObj.monthlyPrice     ??
+                    groupObj.priceMonthly     ??
+                    groupObj.price            ??
+                    groupObj.subscriptionPrice??
+                    groupObj.membershipPrice  ??
+                    groupObj.monthly_price    ??
+                    groupObj.amount           ??
+                    groupObj.pricePerMonth    ??
+                    groupObj.priceCents       ??
+                    null;
+
+                const annualPrice =
+                    groupObj.annualPrice      ??
+                    groupObj.priceAnnual      ??
+                    groupObj.yearly_price     ??
+                    groupObj.annual_price     ??
+                    groupObj.yearlyPrice      ??
+                    null;
+
+                const currency =
+                    groupObj.currency         ??
+                    groupObj.monthlyPriceCurrency ??
+                    'usd';
+
+                log.info(`[${slug}] members:${memberCount} monthlyPrice:${monthlyPrice} annualPrice:${annualPrice}`);
+
                 return {
-                    members:           memberCount   ?? null,
-                    monthlyPriceCents: monthlyPrice  ?? null,
-                    annualPriceCents:  annualPrice   ?? null,
-                    currency:          currency,
+                    members:           memberCount  ?? null,
+                    monthlyPriceCents: monthlyPrice,
+                    annualPriceCents:  annualPrice,
+                    currency,
                     source: 'next_data',
                 };
             }
