@@ -6,7 +6,7 @@
  */
 
 import { Actor } from 'apify';
-import { HttpCrawler, log } from 'crawlee';
+import { PlaywrightCrawler, log } from 'crawlee';
 
 // ─── TSV Parser ──────────────────────────────────────────────────────────────
 
@@ -277,23 +277,35 @@ const proxy = proxyConfig ? await Actor.createProxyConfiguration(proxyConfig) : 
 let processed = 0;
 let priceChanges = 0;
 
-const crawler = new HttpCrawler({
+const crawler = new PlaywrightCrawler({
     proxyConfiguration: proxy,
     maxConcurrency,
     minConcurrency: 1,
-    requestHandlerTimeoutSecs: 30,
+    requestHandlerTimeoutSecs: 60,
+    launchContext: {
+        launchOptions: {
+            headless: true,
+        },
+    },
 
-    requestHandler: async ({ request, body, response }) => {
+    requestHandler: async ({ request, page, response }) => {
         const { slug } = request.userData;
         const meta = groupMap[slug];
-        log.info(`[${++processed}/${groups.length}] ${slug} — HTTP ${response.statusCode}`);
+        const status = response?.status() ?? 0;
+        log.info(`[${++processed}/${groups.length}] ${slug} — HTTP ${status}`);
 
-        if (response.statusCode === 404) {
+        if (status === 404) {
             await Actor.pushData({ group_slug: slug, group_name: meta.name, fetch_status: 'not_found', skool_url: request.url });
             return;
         }
 
-        const live = extractSkoolData(body.toString(), slug);
+        // Wait for the price span to appear (renders client-side)
+        try {
+            await page.waitForSelector('span', { timeout: 10000 });
+        } catch (_) { /* continue anyway */ }
+
+        const html = await page.content();
+        const live = extractSkoolData(html, slug);
 
         const membersDiff = (live.members !== null && meta.oldMembers !== null)
             ? live.members - meta.oldMembers : null;
