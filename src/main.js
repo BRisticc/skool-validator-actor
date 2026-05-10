@@ -8,8 +8,8 @@
  * blob rather than parsing HTML — much more reliable.
  */
 
-import { Actor, log } from 'apify';
-import { HttpCrawler, ProxyConfiguration } from 'crawlee';
+import { Actor } from 'apify';
+import { HttpCrawler, log } from 'crawlee';
 import { parse as parseCsv } from 'csv-parse/sync';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
