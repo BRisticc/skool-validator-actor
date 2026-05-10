@@ -194,32 +194,21 @@ function extractSkoolData(html, slug) {
         log.info(`[${slug}] HTML context around memberCount: ${ctx}`);
     }
 
-    // Try every plausible price key in raw HTML
-    const pricePatterns = [
-        /"monthlyPrice"\s*:\s*(\d+)/,
-        /"priceMonthly"\s*:\s*(\d+)/,
-        /"price"\s*:\s*(\d+)/,
-        /"priceCents"\s*:\s*(\d+)/,
-        /"subscriptionPrice"\s*:\s*(\d+)/,
-        /"membershipPrice"\s*:\s*(\d+)/,
-        /"amount"\s*:\s*(\d+)/,
-        /"pricePerMonth"\s*:\s*(\d+)/,
-        /"monthly_price"\s*:\s*(\d+)/,
-    ];
-    const annualPatterns = [
-        /"annualPrice"\s*:\s*(\d+)/,
-        /"priceAnnual"\s*:\s*(\d+)/,
-        /"yearlyPrice"\s*:\s*(\d+)/,
-        /"annual_price"\s*:\s*(\d+)/,
-    ];
-
-    for (const re of pricePatterns) {
-        const m = html.match(re);
-        if (m) { result.monthlyPriceCents = parseInt(m[1], 10); break; }
+    // ── Price from rendered HTML spans: "$9/month", "JOIN $9/month" ──────────
+    // Skool renders price as plain text — NOT in __NEXT_DATA__ JSON
+    const spanPriceMatch = html.match(
+        /\$(\d+(?:\.\d{1,2})?)\s*\/\s*mo(?:nth)?/i
+    );
+    if (spanPriceMatch) {
+        // Price is in dollars (e.g. "9"), convert to cents
+        result.monthlyPriceCents = Math.round(parseFloat(spanPriceMatch[1]) * 100);
     }
-    for (const re of annualPatterns) {
-        const m = html.match(re);
-        if (m) { result.annualPriceCents = parseInt(m[1], 10); break; }
+
+    const spanAnnualMatch = html.match(
+        /\$(\d+(?:\.\d{1,2})?)\s*\/\s*year/i
+    );
+    if (spanAnnualMatch) {
+        result.annualPriceCents = Math.round(parseFloat(spanAnnualMatch[1]) * 100);
     }
 
     log.info(`[${slug}] Regex — members:${result.members} monthly:${result.monthlyPriceCents} annual:${result.annualPriceCents}`);
