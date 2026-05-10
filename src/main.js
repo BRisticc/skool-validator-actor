@@ -183,14 +183,46 @@ function extractSkoolData(html, slug) {
     // ── Strategy 2: Raw HTML regex ───────────────────────────────────────────
     const mCount  = html.match(/"memberCount"\s*:\s*(\d+)/)
                  ?? html.match(/"totalMembers"\s*:\s*(\d+)/);
-    const mPrice  = html.match(/"monthlyPrice"\s*:\s*(\d+)/);
-    const aPrice  = html.match(/"annualPrice"\s*:\s*(\d+)/);
 
-    if (mCount)  result.members           = parseInt(mCount[1], 10);
-    if (mPrice)  result.monthlyPriceCents = parseInt(mPrice[1], 10);
-    if (aPrice)  result.annualPriceCents  = parseInt(aPrice[1], 10);
+    if (mCount) {
+        result.members = parseInt(mCount[1], 10);
 
-    log.debug(`[${slug}] Regex fallback — members:${result.members} price:${result.monthlyPriceCents}`);
+        // Log ~600 chars around memberCount to reveal nearby price keys (first group only)
+        const pos = html.indexOf(mCount[0]);
+        const ctx = html.slice(Math.max(0, pos - 50), pos + 550)
+                        .replace(/\s+/g, ' ');
+        log.info(`[${slug}] HTML context around memberCount: ${ctx}`);
+    }
+
+    // Try every plausible price key in raw HTML
+    const pricePatterns = [
+        /"monthlyPrice"\s*:\s*(\d+)/,
+        /"priceMonthly"\s*:\s*(\d+)/,
+        /"price"\s*:\s*(\d+)/,
+        /"priceCents"\s*:\s*(\d+)/,
+        /"subscriptionPrice"\s*:\s*(\d+)/,
+        /"membershipPrice"\s*:\s*(\d+)/,
+        /"amount"\s*:\s*(\d+)/,
+        /"pricePerMonth"\s*:\s*(\d+)/,
+        /"monthly_price"\s*:\s*(\d+)/,
+    ];
+    const annualPatterns = [
+        /"annualPrice"\s*:\s*(\d+)/,
+        /"priceAnnual"\s*:\s*(\d+)/,
+        /"yearlyPrice"\s*:\s*(\d+)/,
+        /"annual_price"\s*:\s*(\d+)/,
+    ];
+
+    for (const re of pricePatterns) {
+        const m = html.match(re);
+        if (m) { result.monthlyPriceCents = parseInt(m[1], 10); break; }
+    }
+    for (const re of annualPatterns) {
+        const m = html.match(re);
+        if (m) { result.annualPriceCents = parseInt(m[1], 10); break; }
+    }
+
+    log.info(`[${slug}] Regex — members:${result.members} monthly:${result.monthlyPriceCents} annual:${result.annualPriceCents}`);
 
     return { ...result, source: result.members !== null ? 'regex' : 'not_extracted' };
 }
